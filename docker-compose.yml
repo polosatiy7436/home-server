@@ -12,10 +12,22 @@ volumes:
   model-cache:
 
 services:
+  homarr:
+    container_name: homarr
+    image: ghcr.io/ajnart/homarr:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock # Optional, docker integration
+      - /home/pi/apps/homarr/configs:/app/data/configs
+      - /home/pi/apps/homarr/icons:/app/public/icons
+      - /home/pi/apps/homarr/data:/data
+    ports:
+      - 8080:7575
+    restart: always
+    
   jellyfin:
     image: lscr.io/linuxserver/jellyfin:latest
     container_name: jellyfin
-    environment:
+    environment: #PUID/PGID is not used to fix intro-skipper-docker-mod
       - DOCKER_MODS=ghcr.io/intro-skipper/intro-skipper-docker-mod
       - DOCKER_MODS=ghcr.io/lizardbyte/themerr-jellyfin:latest
       - TZ=Asia/Tbilisi
@@ -49,8 +61,8 @@ services:
       - TZ=Asia/Tbilisi
     volumes:
       - /home/pi/apps/sonarr/config:/config
-      - /home/pi/media/tv:/tv #optional
-      - /home/pi/media:/downloads #optional
+      - /home/pi/media/tv:/tv
+      - /home/pi/media:/downloads
     ports:
       - 8989:8989
     restart: unless-stopped
@@ -64,8 +76,8 @@ services:
       - TZ=Asia/Tbilisi
     volumes:
       - /home/pi/apps/radarr/config:/config
-      - /home/pi/media/movies:/movies #optional
-      - /home/pi/media:/downloads #optional
+      - /home/pi/media/movies:/movies
+      - /home/pi/media:/downloads
     ports:
       - 7878:7878
     restart: unless-stopped
@@ -79,17 +91,15 @@ services:
       - TZ=Asia/Tbilisi
     volumes:
       - /home/pi/apps/lidarr/config:/config
-      - /home/pi/media/music:/music #optional
-      - /home/pi/media:/downloads #optional
+      - /home/pi/media/music:/music
+      - /home/pi/media:/downloads
     ports:
       - 8686:8686
     restart: unless-stopped
 
   bazarr:
     container_name: bazarr
-    image: ghcr.io/hotio/bazarr
-    ports:
-      - "6767:6767"
+    image: lscr.io/linuxserver/bazarr:latest
     environment:
       - PUID=1000
       - PGID=1000
@@ -98,11 +108,28 @@ services:
     volumes:
       - /home/pi/apps/bazarr/config:/config
       - /home/pi/media:/data
-      - /home/pi/media/tv:/tv #optional
-      - /home/pi/media/movies:/movies #optional
-      - /home/pi/media:/downloads #optional
+      - /home/pi/media/tv:/tv
+      - /home/pi/media/movies:/movies
+      - /home/pi/media:/downloads
+    ports:
+      - 6767:6767
     restart: unless-stopped
   
+  readarr:
+    image: lscr.io/linuxserver/readarr:nightly
+    container_name: readarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tbilisi
+    volumes:
+      - /home/pi/apps/readarr/config:/config
+      - /home/pi/media/books:/books #optional
+      - /home/pi/media:/downloads #optional
+    ports:
+      - 8787:8787
+    restart: unless-stopped
+
   deluge:
     image: lscr.io/linuxserver/deluge:latest
     container_name: deluge
@@ -118,14 +145,14 @@ services:
       - 8112:8112
       - 6881:6881
       - 6881:6881/udp
-      - 58846:58846 #optional
+      - 58846:58846
     restart: unless-stopped
   
   mealie:
-    image: hkotel/mealie:latest
+    image: hkotel/mealie:latest #no linuxserver yet
     container_name: mealie
     ports:
-        - "9925:9000"
+        - 9925:9000
     depends_on:
       - postgres
     volumes:
@@ -160,21 +187,6 @@ services:
       POSTGRES_USER: mealie
       POSTGRES_DB: nextcloud
   
-  readarr:
-    image: lscr.io/linuxserver/readarr:nightly
-    container_name: readarr
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Asia/Tbilisi
-    volumes:
-      - /home/pi/apps/readarr/config:/config
-      - /home/pi/media/books:/books #optional
-      - /home/pi/media:/downloads #optional
-    ports:
-      - 8787:8787
-    restart: unless-stopped
-  
   grafana:
     container_name: monitoring-grafana
     image: grafana/grafana:latest
@@ -188,7 +200,6 @@ services:
     env_file:
       - /home/pi/apps/monitoring/grafana/.env
     volumes:
-      # /!\ To be modified depending on your needs /!\
       - /home/pi/apps/monitoring/grafana/data:/var/lib/grafana
       - /home/pi/apps/monitoring/grafana/provisioning:/etc/grafana/provisioning
     depends_on:
@@ -266,32 +277,33 @@ services:
         - 127.0.0.1
         - 8.8.8.8
       ports:
-        - "53:53/tcp"
-        - "53:53/udp"
-        - "67:67/udp"
-        - "82:80/tcp"
+        - 53:53/tcp
+        - 53:53/udp
+        - 67:67/udp
+        - 82:80/tcp
       environment:
         TZ: Asia/Tbilisi
-        WEBPASSWORD: 'pi'
+        WEBPASSWORD: 'pi' #for first launch
       volumes:
-        - '/home/pi/apps/pihole:/etc/pihole'
-        - '/home/pi/apps/dnsmasq.d:/etc/dnsmasq.d'
+        - /home/pi/apps/pihole:/etc/pihole
+        - /home/pi/apps/dnsmasq.d:/etc/dnsmasq.d
       cap_add:
         - NET_ADMIN
       restart: always
 
-  heimdall:
-    image: lscr.io/linuxserver/heimdall:latest
-    container_name: heimdall
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Asia/Tbilisi
-    volumes:
-      - /home/pi/apps/heimdall/:/config
-    ports:
-      - 8008:80
-    restart: always
+  #not used anymore. Saved as backup dashboard
+  # heimdall:
+  #   image: lscr.io/linuxserver/heimdall:latest
+  #   container_name: heimdall
+  #   environment:
+  #     - PUID=1000
+  #     - PGID=1000
+  #     - TZ=Asia/Tbilisi
+  #   volumes:
+  #     - /home/pi/apps/heimdall/:/config
+  #   ports:
+  #     - 8008:80
+  #   restart: always
 
   portainer:
     image: portainer/portainer-ce:latest
@@ -306,16 +318,15 @@ services:
   navidrome:
     image: deluan/navidrome:latest
     container_name: navidrome
-    user: 1000:1000 # should be owner of volumes
+    user: 1000:1000
     ports:
-      - "4533:4533"
+      - 4533:4533
     restart: unless-stopped
     environment:
-      # Optional: put your config options customization here. Examples:
       ND_SCANSCHEDULE: 24h
     volumes:
-      - "/home/pi/apps/navidrome:/data"
-      - "/home/pi/media/music:/music:ro"
+      - /home/pi/apps/navidrome:/data
+      - /home/pi/media/music:/music:ro
 
   nextcloud:
     image: nextcloud
@@ -347,9 +358,6 @@ services:
   immich-server:
     container_name: immich_server
     image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
-    # extends:
-    #   file: hwaccel.transcoding.yml
-    #   service: cpu # set to one of [nvenc, quicksync, rkmpp, vaapi, vaapi-wsl] for accelerated transcoding
     volumes:
       - ${UPLOAD_LOCATION}:/usr/src/app/upload
       - /etc/localtime:/etc/localtime:ro
@@ -365,12 +373,7 @@ services:
 
   immich-machine-learning:
     container_name: immich_machine_learning
-    # For hardware acceleration, add one of -[armnn, cuda, openvino] to the image tag.
-    # Example tag: ${IMMICH_VERSION:-release}-armnn
     image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
-    # extends: # uncomment this section for hardware acceleration - see https://immich.app/docs/features/ml-hardware-acceleration
-    #   file: hwaccel.ml.yml
-    #   service: cpu # set to one of [armnn, cuda, openvino, openvino-wsl] for accelerated inference - use the `-wsl` version for WSL2 where applicable
     volumes:
       - model-cache:/cache
     env_file:
@@ -405,9 +408,9 @@ services:
   cyber-chef:
     image: mpepping/cyberchef:latest
     container_name: cyberchef
-    restart: always
+    restart: unless-stopped
     ports:
-      - "8003:8000"
+      - 8003:8000
 
   bookstack:
     image: lscr.io/linuxserver/bookstack
@@ -436,7 +439,7 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Europe/London
+      - TZ=Asia/Tbilisi
       - MYSQL_ROOT_PASSWORD=changeme
       - MYSQL_DATABASE=bookstackapp
       - MYSQL_USER=bookstack
@@ -459,24 +462,23 @@ services:
 
   ngnix_proxy:
     container_name: ngnix_proxy
-    image: 'jc21/nginx-proxy-manager:latest'
+    image: jc21/nginx-proxy-manager:latest
     restart: unless-stopped
     ports:
-      # These ports are in format <host-port>:<container-port>
-      - '80:80' # Public HTTP Port
-      - '443:443' # Public HTTPS Port
-      - '81:81' # Admin Web Port
+      - 80:80
+      - 443:443
+      - 81:81 # Admin Web Port
       # Add any other Stream port you want to expose
       # - '21:21' # FTP
     environment:
       # Mysql/Maria connection parameters:
-      DB_MYSQL_HOST: "ngnix_proxy_db"
+      DB_MYSQL_HOST: ngnix_proxy_db
       DB_MYSQL_PORT: 3306
-      DB_MYSQL_USER: "npm"
-      DB_MYSQL_PASSWORD: "npm"
-      DB_MYSQL_NAME: "npm"
+      DB_MYSQL_USER: npm
+      DB_MYSQL_PASSWORD: npm
+      DB_MYSQL_NAME: npm
       # Uncomment this if IPv6 is not enabled on your host
-      # DISABLE_IPV6: 'true'
+      DISABLE_IPV6: 'true'
     volumes:
       - /home/pi/apps/ngnix_proxy/data:/data
       - /home/pi/apps/ngnix_proxy/letsencrypt:/etc/letsencrypt
@@ -485,25 +487,13 @@ services:
 
   ngnix_proxy_db:
     container_name: ngnix_proxy_db
-    image: 'jc21/mariadb-aria:latest'
+    image: jc21/mariadb-aria:latest
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: 'npm'
-      MYSQL_DATABASE: 'npm'
-      MYSQL_USER: 'npm'
-      MYSQL_PASSWORD: 'npm'
-      MARIADB_AUTO_UPGRADE: '1'
+      MYSQL_ROOT_PASSWORD: npm
+      MYSQL_DATABASE: npm
+      MYSQL_USER: npm
+      MYSQL_PASSWORD: npm
+      MARIADB_AUTO_UPGRADE: 1
     volumes:
       - /home/pi/apps/ngnix_proxy/mysql:/var/lib/mysql
-
-  homarr:
-    container_name: homarr
-    image: ghcr.io/ajnart/homarr:latest
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock # Optional, only if you want docker integration
-      - /home/pi/apps/homarr/configs:/app/data/configs
-      - /home/pi/apps/homarr/icons:/app/public/icons
-      - /home/pi/apps/homarr/data:/data
-    ports:
-      - '8080:7575'
-    restart: always
