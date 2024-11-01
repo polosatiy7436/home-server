@@ -1,0 +1,496 @@
+---
+version: "2.1"
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  mealie-data:
+    driver: local
+  mealie-pgdata:
+    driver: local
+  nextcloud:
+  db:
+  model-cache:
+
+services:
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tbilisi
+    volumes:
+      - /home/pi/apps/prowlarr/config:/config
+    ports:
+      - 9696:9696
+    restart: unless-stopped
+  
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tbilisi
+    volumes:
+      - /home/pi/apps/sonarr/config:/config
+      - /home/pi/media/tv:/tv #optional
+      - /home/pi/media:/downloads #optional
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+  
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tbilisi
+    volumes:
+      - /home/pi/apps/radarr/config:/config
+      - /home/pi/media/movies:/movies #optional
+      - /home/pi/media:/downloads #optional
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+  
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    container_name: lidarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tbilisi
+    volumes:
+      - /home/pi/apps/lidarr/config:/config
+      - /home/pi/media/music:/music #optional
+      - /home/pi/media:/downloads #optional
+    ports:
+      - 8686:8686
+    restart: unless-stopped
+
+  bazarr:
+    container_name: bazarr
+    image: ghcr.io/hotio/bazarr
+    ports:
+      - "6767:6767"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - UMASK=002
+      - TZ=Asia/Tbilisi
+    volumes:
+      - /home/pi/apps/bazarr/config:/config
+      - /home/pi/media:/data
+      - /home/pi/media/tv:/tv #optional
+      - /home/pi/media/movies:/movies #optional
+      - /home/pi/media:/downloads #optional
+    restart: unless-stopped
+  
+  deluge:
+    image: lscr.io/linuxserver/deluge:latest
+    container_name: deluge
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tbilisi
+      - DELUGE_LOGLEVEL=error #optional
+    volumes:
+      - /home/pi/apps/deluge/config:/config
+      - /home/pi/media:/downloads
+    ports:
+      - 8112:8112
+      - 6881:6881
+      - 6881:6881/udp
+      - 58846:58846 #optional
+    restart: unless-stopped
+  
+  mealie:
+    image: hkotel/mealie:latest
+    container_name: mealie
+    ports:
+        - "9925:9000"
+    depends_on:
+      - postgres
+    volumes:
+      - /home/pi/apps/mealie:/app/data/
+    environment:
+    # Set Backend ENV Variables Here
+      - ALLOW_SIGNUP=true
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tbilisi
+      - MAX_WORKERS=1
+      - WEB_CONCURRENCY=1
+      - BASE_URL=mealie-api.io
+
+    # Database Settings
+      - DB_ENGINE=postgres
+      - POSTGRES_USER=mealie
+      - POSTGRES_PASSWORD=changeme
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=mealie
+    restart: always
+  
+  postgres:
+    container_name: postgres
+    image: postgres:15
+    restart: always
+    volumes:
+      - /home/pi/apps/postgres:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: changeme
+      POSTGRES_USER: mealie
+      POSTGRES_DB: nextcloud
+  
+  readarr:
+    image: lscr.io/linuxserver/readarr:nightly
+    container_name: readarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tbilisi
+    volumes:
+      - /home/pi/apps/readarr/config:/config
+      - /home/pi/media/books:/books #optional
+      - /home/pi/media:/downloads #optional
+    ports:
+      - 8787:8787
+    restart: unless-stopped
+  
+  grafana:
+    container_name: monitoring-grafana
+    image: grafana/grafana:latest
+    hostname: rpi-grafana
+    restart: unless-stopped
+    user: "472"
+    networks:
+      - internal
+    ports:
+      - "3000:3000"
+    env_file:
+      - /home/pi/apps/monitoring/grafana/.env
+    volumes:
+      # /!\ To be modified depending on your needs /!\
+      - /home/pi/apps/monitoring/grafana/data:/var/lib/grafana
+      - /home/pi/apps/monitoring/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+
+  cadvisor:
+    container_name: monitoring-cadvisor
+    image: gcr.io/cadvisor/cadvisor:v0.47.1
+    hostname: rpi-cadvisor
+    restart: unless-stopped
+    privileged: true
+    networks:
+      - internal
+    expose:
+      - 8080
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+      - /etc/machine-id:/etc/machine-id:ro
+
+  node-exporter:
+    container_name: monitoring-node-exporter
+    image: prom/node-exporter:latest
+    hostname: rpi-exporter
+    restart: unless-stopped
+    networks:
+      - internal
+    expose:
+      - 9100
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/host
+      - --collector.filesystem.ignored-mount-points
+      - ^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - /:/host:ro,rslave
+
+  prometheus:
+    container_name: monitoring-prometheus
+    image: prom/prometheus:latest
+    hostname: rpi-prometheus
+    restart: unless-stopped
+    user: "nobody"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - internal
+    expose:
+      - 9090
+    volumes:
+      # /!\ To be modified depending on your needs /!\
+      - /home/pi/apps/monitoring/prometheus/data:/prometheus
+      - /home/pi/apps/monitoring/prometheus:/etc/prometheus/
+    depends_on:
+      - cadvisor
+      - node-exporter
+    links:
+      - cadvisor:cadvisor
+      - node-exporter:node-exporter
+
+  pihole:
+      container_name: pihole
+      image: pihole/pihole:latest
+      dns:
+        - 127.0.0.1
+        - 8.8.8.8
+      ports:
+        - "53:53/tcp"
+        - "53:53/udp"
+        - "67:67/udp"
+        - "82:80/tcp"
+      environment:
+        TZ: Asia/Tbilisi
+        WEBPASSWORD: 'pi'
+      volumes:
+        - '/home/pi/apps/pihole:/etc/pihole'
+        - '/home/pi/apps/dnsmasq.d:/etc/dnsmasq.d'
+      cap_add:
+        - NET_ADMIN
+      restart: always
+
+  heimdall:
+    image: lscr.io/linuxserver/heimdall:latest
+    container_name: heimdall
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tbilisi
+    volumes:
+      - /home/pi/apps/heimdall/:/config
+    ports:
+      - 8008:80
+    restart: always
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    ports:
+      - 9000:9000
+    volumes:
+        - /home/pi/apps/portainer/data:/data
+        - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+
+  navidrome:
+    image: deluan/navidrome:latest
+    container_name: navidrome
+    user: 1000:1000 # should be owner of volumes
+    ports:
+      - "4533:4533"
+    restart: unless-stopped
+    environment:
+      # Optional: put your config options customization here. Examples:
+      ND_SCANSCHEDULE: 24h
+    volumes:
+      - "/home/pi/apps/navidrome:/data"
+      - "/home/pi/media/music:/music:ro"
+
+  nextcloud:
+    image: nextcloud
+    container_name: nextcloud
+    restart: always
+    ports:
+      - 8081:80
+    volumes:
+      - /home/pi/apps/nextcloud:/var/www/html
+    environment:
+      - POSTGRES_PASSWORD=changeme
+      - POSTGRES_DB=nextcloud
+      - POSTGRES_USER=nextcloud
+      - POSTGRES_HOST=nextcloud_postgres
+    depends_on:
+      - nextcloud_postgres
+
+  nextcloud_postgres:
+    container_name: nextcloud_postgres
+    image: postgres:16
+    restart: always
+    volumes:
+      - /home/pi/apps/nextcloud_postgres:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: changeme
+      POSTGRES_USER: nextcloud
+      POSTGRES_DB: nextcloud
+
+  immich-server:
+    container_name: immich_server
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
+    # extends:
+    #   file: hwaccel.transcoding.yml
+    #   service: cpu # set to one of [nvenc, quicksync, rkmpp, vaapi, vaapi-wsl] for accelerated transcoding
+    volumes:
+      - ${UPLOAD_LOCATION}:/usr/src/app/upload
+      - /etc/localtime:/etc/localtime:ro
+      - ${EXTERNAL_PATH}:/usr/src/app/external
+    env_file:
+      - .env
+    ports:
+      - 2283:2283
+    depends_on:
+      - redis
+      - database
+    restart: always
+
+  immich-machine-learning:
+    container_name: immich_machine_learning
+    # For hardware acceleration, add one of -[armnn, cuda, openvino] to the image tag.
+    # Example tag: ${IMMICH_VERSION:-release}-armnn
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
+    # extends: # uncomment this section for hardware acceleration - see https://immich.app/docs/features/ml-hardware-acceleration
+    #   file: hwaccel.ml.yml
+    #   service: cpu # set to one of [armnn, cuda, openvino, openvino-wsl] for accelerated inference - use the `-wsl` version for WSL2 where applicable
+    volumes:
+      - model-cache:/cache
+    env_file:
+      - .env
+    restart: always
+
+  redis:
+    container_name: immich_redis
+    image: docker.io/redis:6.2-alpine@sha256:d6c2911ac51b289db208767581a5d154544f2b2fe4914ea5056443f62dc6e900
+    healthcheck:
+      test: redis-cli ping || exit 1
+    restart: always
+
+  database:
+    container_name: immich_postgres
+    image: docker.io/tensorchord/pgvecto-rs:pg14-v0.2.0@sha256:90724186f0a3517cf6914295b5ab410db9ce23190a2d9d0b9dd6463e3fa298f0
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_DB: ${DB_DATABASE_NAME}
+      POSTGRES_INITDB_ARGS: '--data-checksums'
+    volumes:
+      - ${DB_DATA_LOCATION}:/var/lib/postgresql/data
+    healthcheck:
+      test: pg_isready --dbname='${DB_DATABASE_NAME}' || exit 1; Chksum="$$(psql --dbname='${DB_DATABASE_NAME}' --username='${DB_USERNAME}' --tuples-only --no-align --command='SELECT COALESCE(SUM(checksum_failures), 0) FROM pg_stat_database')"; echo "checksum failure count is $$Chksum"; [ "$$Chksum" = '0' ] || exit 1
+      interval: 5m
+      start_interval: 30s
+      start_period: 5m
+    command: ["postgres", "-c" ,"shared_preload_libraries=vectors.so", "-c", 'search_path="$$user", public, vectors', "-c", "logging_collector=on", "-c", "max_wal_size=2GB", "-c", "shared_buffers=512MB", "-c", "wal_compression=on"]
+    restart: always
+
+  cyber-chef:
+    image: mpepping/cyberchef:latest
+    container_name: cyberchef
+    restart: always
+    ports:
+      - "8003:8000"
+
+  bookstack:
+    image: lscr.io/linuxserver/bookstack
+    container_name: bookstack
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tbilisi
+      - APP_URL=https://wiki.maksimuladyka.org
+      - DB_HOST=bookstack_db
+      - DB_PORT=3306
+      - DB_USER=bookstack
+      - DB_PASS=changeme
+      - DB_DATABASE=bookstackapp
+    volumes:
+      - /home/pi/apps/bookstack:/config
+    ports:
+      - 6875:80
+    restart: unless-stopped
+    depends_on:
+      - bookstack_db
+
+  bookstack_db:
+    image: lscr.io/linuxserver/mariadb
+    container_name: bookstack_db
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - MYSQL_ROOT_PASSWORD=changeme
+      - MYSQL_DATABASE=bookstackapp
+      - MYSQL_USER=bookstack
+      - MYSQL_PASSWORD=changeme
+    volumes:
+      - /home/pi/apps/bookstack_db:/config
+    restart: unless-stopped
+
+  jellyseerr:
+    image: fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
+    environment:
+      - LOG_LEVEL=debug
+      - TZ=Asia/Tbilisi
+    ports:
+      - 5055:5055
+    volumes:
+      - /home/pi/apps/jellyseerr/config:/app/config
+    restart: unless-stopped
+
+  ngnix_proxy:
+    container_name: ngnix_proxy
+    image: 'jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    ports:
+      # These ports are in format <host-port>:<container-port>
+      - '80:80' # Public HTTP Port
+      - '443:443' # Public HTTPS Port
+      - '81:81' # Admin Web Port
+      # Add any other Stream port you want to expose
+      # - '21:21' # FTP
+    environment:
+      # Mysql/Maria connection parameters:
+      DB_MYSQL_HOST: "ngnix_proxy_db"
+      DB_MYSQL_PORT: 3306
+      DB_MYSQL_USER: "npm"
+      DB_MYSQL_PASSWORD: "npm"
+      DB_MYSQL_NAME: "npm"
+      # Uncomment this if IPv6 is not enabled on your host
+      # DISABLE_IPV6: 'true'
+    volumes:
+      - /home/pi/apps/ngnix_proxy/data:/data
+      - /home/pi/apps/ngnix_proxy/letsencrypt:/etc/letsencrypt
+    depends_on:
+      - ngnix_proxy_db
+
+  ngnix_proxy_db:
+    container_name: ngnix_proxy_db
+    image: 'jc21/mariadb-aria:latest'
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: 'npm'
+      MYSQL_DATABASE: 'npm'
+      MYSQL_USER: 'npm'
+      MYSQL_PASSWORD: 'npm'
+      MARIADB_AUTO_UPGRADE: '1'
+    volumes:
+      - /home/pi/apps/ngnix_proxy/mysql:/var/lib/mysql
+
+  homarr:
+    container_name: homarr
+    image: ghcr.io/ajnart/homarr:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock # Optional, only if you want docker integration
+      - /home/pi/apps/homarr/configs:/app/data/configs
+      - /home/pi/apps/homarr/icons:/app/public/icons
+      - /home/pi/apps/homarr/data:/data
+    ports:
+      - '8080:7575'
+    restart: always
