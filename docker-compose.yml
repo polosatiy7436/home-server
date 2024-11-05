@@ -2,6 +2,10 @@ networks:
   internal:
     driver: bridge
 
+secrets:
+  OPENAI_API_KEY:
+    file: openAiApiKey.txt
+
 volumes:
   mealie-data:
     driver: local
@@ -149,7 +153,7 @@ services:
     restart: unless-stopped
   
   mealie:
-    image: hkotel/mealie:latest #no linuxserver yet
+    image: ghcr.io/mealie-recipes/mealie:v2.1.0 #no linuxserver yet
     container_name: mealie
     ports:
         - 9925:9000
@@ -166,7 +170,7 @@ services:
       - MAX_WORKERS=1
       - WEB_CONCURRENCY=1
       - BASE_URL=mealie-api.io
-
+      - OPENAI_ENABLE_IMAGE_SERVICES=true
     # Database Settings
       - DB_ENGINE=postgres
       - POSTGRES_USER=mealie
@@ -174,6 +178,8 @@ services:
       - POSTGRES_SERVER=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_DB=mealie
+    secrets:
+      - OPENAI_API_KEY
     restart: always
   
   postgres:
@@ -449,7 +455,7 @@ services:
     restart: unless-stopped
 
   jellyseerr:
-    image: fallenbagel/jellyseerr:latest
+    image: fallenbagel/jellyseerr:1.9.2
     container_name: jellyseerr
     environment:
       - LOG_LEVEL=debug
@@ -497,3 +503,20 @@ services:
       MARIADB_AUTO_UPGRADE: 1
     volumes:
       - /home/pi/apps/ngnix_proxy/mysql:/var/lib/mysql
+
+  stirling-pdf:
+    container_name: pdf-editor
+    image: frooodle/s-pdf:latest
+    ports:
+      - 8082:8080
+    volumes:
+      - /home/pi/apps/stirling-pdf:/usr/share/tessdata # Required for extra OCR languages
+      - /home/pi/apps/stirling-pdf:/configs
+      - /home/pi/apps/stirling-pdf/customFiles:/customFiles/
+      - /home/pi/apps/stirling-pdf/logs:/logs/
+    environment:
+      - DOCKER_ENABLE_SECURITY=false
+      - INSTALL_BOOK_AND_ADVANCED_HTML_OPS=true
+      - LANGS=en_GB
+      - LANGS=ru_ru
+    restart: unless-stopped
