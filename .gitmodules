@@ -1,0 +1,3 @@
+[submodule "apps/Jellyfin-lyrics"]
+	path = apps/Jellyfin-lyrics
+	url = https://github.com/sai80082/Jellyfin-lyrics.git
