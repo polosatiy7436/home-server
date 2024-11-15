@@ -39,6 +39,7 @@ services:
       - /home/pi/apps/jellyfin/config:/config
       - /home/pi/media/tv:/home/pi/media/tv
       - /home/pi/media/movies:/home/pi/media/movies
+      - /home/pi/media/music:/home/pi/media/music
     ports:
       - 8096:8096
     restart: unless-stopped
