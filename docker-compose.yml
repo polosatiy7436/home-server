@@ -456,7 +456,7 @@ services:
     restart: unless-stopped
 
   jellyseerr:
-    image: fallenbagel/jellyseerr:1.9.2
+    image: fallenbagel/jellyseerr:latest
     container_name: jellyseerr
     environment:
       - LOG_LEVEL=debug
@@ -505,19 +505,19 @@ services:
     volumes:
       - /home/pi/apps/ngnix_proxy/mysql:/var/lib/mysql
 
-  stirling-pdf:
-    container_name: pdf-editor
-    image: frooodle/s-pdf:latest
-    ports:
-      - 8082:8080
-    volumes:
-      - /home/pi/apps/stirling-pdf:/usr/share/tessdata # Required for extra OCR languages
-      - /home/pi/apps/stirling-pdf:/configs
-      - /home/pi/apps/stirling-pdf/customFiles:/customFiles/
-      - /home/pi/apps/stirling-pdf/logs:/logs/
-    environment:
-      - DOCKER_ENABLE_SECURITY=false
-      - INSTALL_BOOK_AND_ADVANCED_HTML_OPS=true
-      - LANGS=en_GB
-      - LANGS=ru_ru
-    restart: unless-stopped
+  # stirling-pdf:
+  #   container_name: pdf-editor
+  #   image: frooodle/s-pdf:latest
+  #   ports:
+  #     - 8082:8080
+  #   volumes:
+  #     - /home/pi/apps/stirling-pdf:/usr/share/tessdata # Required for extra OCR languages
+  #     - /home/pi/apps/stirling-pdf:/configs
+  #     - /home/pi/apps/stirling-pdf/customFiles:/customFiles/
+  #     - /home/pi/apps/stirling-pdf/logs:/logs/
+  #   environment:
+  #     - DOCKER_ENABLE_SECURITY=false
+  #     - INSTALL_BOOK_AND_ADVANCED_HTML_OPS=true
+  #     - LANGS=en_GB
+  #     - LANGS=ru_ru
+  #   restart: unless-stopped
