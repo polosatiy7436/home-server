@@ -1,0 +1,591 @@
+# ==================== NETWORKS ====================
+networks:
+  internal:
+    driver: bridge
+
+# ==================== VOLUMES ====================
+volumes:
+  mealie-data:
+    driver: local
+  mealie-pgdata:
+    driver: local
+  nextcloud:
+  db:
+  model-cache:
+
+# ==================== SECRETS ====================
+secrets:
+  OPENAI_API_KEY:
+    file: ./OPENAI_API_KEY
+
+  MEALIE_POSTGRES_PASSWORD:
+    file: ./MEALIE_POSTGRES_PASSWORD
+  MEALIE_POSTGRES_USER:
+    file: ./MEALIE_POSTGRES_USER
+  MEALIE_POSTGRES_DB:
+    file: ./MEALIE_POSTGRES_DB
+
+  NEXTCLOUD_DB_USER:
+    file: ./NEXTCLOUD_DB_USER
+  NEXTCLOUD_DB_PASSWORD:
+    file: ./NEXTCLOUD_DB_PASSWORD
+  NEXTCLOUD_DB_NAME:
+    file: ./NEXTCLOUD_DB_NAME
+
+  IMMICH_DB_USER:
+    file: ./IMMICH_DB_USER
+  IMMICH_DB_PASSWORD:
+    file: ./IMMICH_DB_PASSWORD
+  IMMICH_DB_NAME:
+    file: ./IMMICH_DB_NAME
+
+  NPM_DB_USER:
+    file: ./NPM_DB_USER
+  NPM_DB_PASSWORD:
+    file: ./NPM_DB_PASSWORD
+  NPM_DB_NAME:
+    file: ./NPM_DB_NAME
+
+  BOOKSTACK_USER:
+    file: ./BOOKSTACK_USER
+  BOOKSTACK_PASSWORD:
+    file: ./BOOKSTACK_PASSWORD
+  BOOKSTACK_DB:
+    file: ./BOOKSTACK_DB
+  BOOKSTACK_PASSWORD_ROOT:
+    file: ./BOOKSTACK_PASSWORD_ROOT
+
+  VAULTWARDER_ADMIN_TOKEN:
+      file: ./VAULTWARDER_ADMIN_TOKEN
+
+# ==================== SERVICES ====================
+services:
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    environment:
+      - DOCKER_MODS=ghcr.io/intro-skipper/intro-skipper-docker-mod|ghcr.io/lizardbyte/themerr-jellyfin:latest
+      - TZ=Asia/Tbilisi
+    volumes:
+      - /home/pi/apps/jellyfin/config:/config
+      - /home/pi/media/tv:/home/pi/media/tv
+      - /home/pi/media/movies:/home/pi/media/movies
+      - /home/pi/media/music:/home/pi/media/music
+    ports:
+      - 8096:8096
+    restart: unless-stopped
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tbilisi
+    volumes:
+      - /home/pi/apps/prowlarr/config:/config
+    ports:
+      - 9696:9696
+    restart: unless-stopped
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tbilisi
+    volumes:
+      - /home/pi/apps/sonarr/config:/config
+      - /home/pi/media/tv:/tv
+      - /home/pi/Storage/downloads:/downloads
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tbilisi
+    volumes:
+      - /home/pi/apps/radarr/config:/config
+      - /home/pi/media/movies:/movies
+      - /home/pi/Storage/downloads:/downloads
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    container_name: lidarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tbilisi
+    volumes:
+      - /home/pi/apps/lidarr/config:/config
+      - /home/pi/media/music:/music
+      - /home/pi/Storage/downloads:/downloads
+    ports:
+      - 8686:8686
+    restart: unless-stopped
+
+  readarr:
+    image: lscr.io/linuxserver/readarr:nightly
+    container_name: readarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tbilisi
+    volumes:
+      - /home/pi/apps/readarr/config:/config
+      - /home/pi/media/books:/books
+      - /home/pi/Storage/downloads:/downloads
+    ports:
+      - 8787:8787
+    restart: unless-stopped
+
+  deluge:
+    image: lscr.io/linuxserver/deluge:latest
+    container_name: deluge
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tbilisi
+      - DELUGE_LOGLEVEL=error
+    volumes:
+      - /home/pi/apps/deluge/config:/config
+      - /home/pi/Storage/downloads:/downloads
+      - /home/pi/Storage/Games:/Games
+    ports:
+      - 8112:8112
+      - 6881:6881
+      - 6881:6881/udp
+      - 58846:58846
+    restart: unless-stopped
+
+  bazarr:
+    container_name: bazarr
+    image: lscr.io/linuxserver/bazarr:latest
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - UMASK=002
+      - TZ=Asia/Tbilisi
+    volumes:
+      - /home/pi/apps/bazarr/config:/config
+      - /home/pi/media:/data
+      - /home/pi/media/tv:/tv
+      - /home/pi/media/movies:/movies
+      - /home/pi/Storage/downloads:/downloads
+    ports:
+      - 6767:6767
+    restart: unless-stopped
+
+  navidrome:
+    image: deluan/navidrome:latest
+    container_name: navidrome
+    user: 1000:1000
+    ports:
+      - 4533:4533
+    restart: unless-stopped
+    environment:
+      ND_SCANSCHEDULE: 24h
+    volumes:
+      - /home/pi/apps/navidrome:/data
+      - /home/pi/media/music:/music:ro
+
+  grafana:
+    container_name: monitoring-grafana
+    image: grafana/grafana:latest
+    hostname: rpi-grafana
+    restart: unless-stopped
+    user: "472"
+    networks:
+      - internal
+    ports:
+      - "3000:3000"
+    env_file:
+      - /home/pi/apps/monitoring/grafana/.env
+    volumes:
+      - /home/pi/apps/monitoring/grafana/data:/var/lib/grafana
+      - /home/pi/apps/monitoring/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+
+  cadvisor:
+    container_name: monitoring-cadvisor
+    image: gcr.io/cadvisor/cadvisor:v0.47.1
+    hostname: rpi-cadvisor
+    restart: unless-stopped
+    privileged: true
+    networks:
+      - internal
+    expose:
+      - 8080
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+      - /etc/machine-id:/etc/machine-id:ro
+
+  node-exporter:
+    container_name: monitoring-node-exporter
+    image: prom/node-exporter:latest
+    hostname: rpi-exporter
+    restart: unless-stopped
+    networks:
+      - internal
+    expose:
+      - 9100
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/host
+      - --collector.filesystem.ignored-mount-points
+      - ^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - /:/host:ro,rslave
+
+  prometheus:
+    container_name: monitoring-prometheus
+    image: prom/prometheus:latest
+    hostname: rpi-prometheus
+    restart: unless-stopped
+    user: "nobody"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - internal
+    expose:
+      - 9090
+    volumes:
+      - /home/pi/apps/monitoring/prometheus/data:/prometheus
+      - /home/pi/apps/monitoring/prometheus:/etc/prometheus/
+    depends_on:
+      - cadvisor
+      - node-exporter
+    links:
+      - cadvisor:cadvisor
+      - node-exporter:node-exporter
+
+  immich-server:
+    container_name: immich_server
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
+    volumes:
+      - ${UPLOAD_LOCATION}:/usr/src/app/upload
+      - /etc/localtime:/etc/localtime:ro
+      - ${EXTERNAL_PATH}:/usr/src/app/external
+    ports:
+      - 2283:2283
+    depends_on:
+      - redis
+      - database
+    secrets:
+      - IMMICH_DB_USER
+      - IMMICH_DB_PASSWORD
+      - IMMICH_DB_NAME
+    environment:
+      - DB_HOST=database
+      - DB_PORT=5432
+      - DB_USERNAME_FILE=/run/secrets/IMMICH_DB_USER
+      - DB_PASSWORD_FILE=/run/secrets/IMMICH_DB_PASSWORD
+      - DB_DATABASE_NAME_FILE=/run/secrets/IMMICH_DB_NAME
+    restart: unless-stopped
+
+  immich-machine-learning:
+    container_name: immich_machine_learning
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
+    volumes:
+      - /home/pi/apps/immich/model-cache:/cache
+    env_file:
+      - .env
+    restart: always
+
+  redis:
+    container_name: immich_redis
+    image: docker.io/redis:6.2-alpine@sha256:d6c2911ac51b289db208767581a5d154544f2b2fe4914ea5056443f62dc6e900
+    healthcheck:
+      test: redis-cli ping || exit 1
+    restart: always
+
+  database:
+    container_name: immich_postgres
+    image: docker.io/tensorchord/pgvecto-rs:pg14-v0.2.0@sha256:90724186f0a3517cf6914295b5ab410db9ce23190a2d9d0b9dd6463e3fa298f0
+    environment:
+      POSTGRES_USER_FILE: /run/secrets/IMMICH_DB_USER
+      POSTGRES_PASSWORD_FILE: /run/secrets/IMMICH_DB_PASSWORD
+      POSTGRES_DB_FILE: /run/secrets/IMMICH_DB_NAME
+      POSTGRES_INITDB_ARGS: '--data-checksums'
+    volumes:
+      - ${DB_DATA_LOCATION}:/var/lib/postgresql/data
+    restart: always
+    secrets:
+      - IMMICH_DB_USER
+      - IMMICH_DB_PASSWORD
+      - IMMICH_DB_NAME
+
+  mealie:
+    image: ghcr.io/mealie-recipes/mealie:latest
+    container_name: mealie
+    ports:
+      - 9925:9000
+    depends_on:
+      mealie_postgres:
+        condition: service_healthy
+    volumes:
+      - /home/pi/apps/mealie:/app/data/
+    environment:
+      - ALLOW_SIGNUP=true
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tbilisi
+      - MAX_WORKERS=1
+      - WEB_CONCURRENCY=1
+      - BASE_URL=mealie-api.io
+      - OPENAI_ENABLE_IMAGE_SERVICES=true
+      - DB_ENGINE=postgres
+      - POSTGRES_SERVER=mealie_postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER_FILE=/run/secrets/MEALIE_POSTGRES_USER
+      - POSTGRES_PASSWORD_FILE=/run/secrets/MEALIE_POSTGRES_PASSWORD
+      - POSTGRES_DB_FILE=/run/secrets/MEALIE_POSTGRES_DB
+    secrets:
+      - source: OPENAI_API_KEY
+        target: OPENAI_API_KEY
+      - MEALIE_POSTGRES_USER
+      - MEALIE_POSTGRES_PASSWORD
+      - MEALIE_POSTGRES_DB
+    restart: unless-stopped
+
+  mealie_postgres:
+    container_name: mealie_postgres
+    image: postgres:15
+    restart: always
+    volumes:
+      - /home/pi/apps/mealie_postgres:/var/lib/postgresql/data
+      - ./healthcheck.sh:/healthcheck.sh:ro
+    secrets:
+      - MEALIE_POSTGRES_USER
+      - MEALIE_POSTGRES_PASSWORD
+      - MEALIE_POSTGRES_DB
+    environment:
+      POSTGRES_USER_FILE: /run/secrets/MEALIE_POSTGRES_USER
+      POSTGRES_PASSWORD_FILE: /run/secrets/MEALIE_POSTGRES_PASSWORD
+      POSTGRES_DB_FILE: /run/secrets/MEALIE_POSTGRES_DB
+    healthcheck:
+      test: ["CMD", "/healthcheck.sh"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  nextcloud:
+    image: nextcloud
+    container_name: nextcloud
+    restart: always
+    ports:
+      - 8081:80
+    volumes:
+      - /home/pi/apps/nextcloud:/var/www/html
+    environment:
+      - POSTGRES_DB_FILE=/run/secrets/NEXTCLOUD_DB_NAME
+      - POSTGRES_USER_FILE=/run/secrets/NEXTCLOUD_DB_USER
+      - POSTGRES_PASSWORD_FILE=/run/secrets/NEXTCLOUD_DB_PASSWORD
+      - POSTGRES_HOST=nextcloud_postgres
+    depends_on:
+      - nextcloud_postgres
+    secrets:
+      - NEXTCLOUD_DB_NAME
+      - NEXTCLOUD_DB_USER
+      - NEXTCLOUD_DB_PASSWORD
+
+  nextcloud_postgres:
+    image: postgres:16
+    container_name: nextcloud_postgres
+    restart: always
+    volumes:
+      - /home/pi/apps/nextcloud_postgres:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB_FILE: /run/secrets/NEXTCLOUD_DB_NAME
+      POSTGRES_USER_FILE: /run/secrets/NEXTCLOUD_DB_USER
+      POSTGRES_PASSWORD_FILE: /run/secrets/NEXTCLOUD_DB_PASSWORD
+    secrets:
+      - NEXTCLOUD_DB_NAME
+      - NEXTCLOUD_DB_USER
+      - NEXTCLOUD_DB_PASSWORD
+
+  # cyber-chef:
+  #   image: mpepping/cyberchef:latest
+  #   container_name: cyberchef
+  #   restart: unless-stopped
+  #   ports:
+  #     - 8003:8000
+  #   volumes:
+  #     - /home/pi/apps/cyberchef:/config
+
+  jellyseerr:
+    image: fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
+    environment:
+      - LOG_LEVEL=debug
+      - TZ=Asia/Tbilisi
+    ports:
+      - 5055:5055
+    volumes:
+      - /home/pi/apps/jellyseerr:/app/config
+    restart: unless-stopped
+
+  homarr:
+    container_name: homarr
+    image: ghcr.io/ajnart/homarr:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/pi/apps/homarr/configs:/app/data/configs
+      - /home/pi/apps/homarr/icons:/app/public/icons
+      - /home/pi/apps/homarr/data:/data
+    ports:
+      - 8080:7575
+    restart: always
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    ports:
+      - 9000:9000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/pi/apps/portainer:/data
+    restart: unless-stopped
+
+  ngnix_proxy:
+    container_name: ngnix_proxy
+    image: jc21/nginx-proxy-manager:latest
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+      - 81:81
+    environment:
+      DB_MYSQL_HOST: ngnix_proxy_db
+      DB_MYSQL_PORT: 3306
+      DB_MYSQL_USER_FILE: /run/secrets/NPM_DB_USER
+      DB_MYSQL_PASSWORD_FILE: /run/secrets/NPM_DB_PASSWORD
+      DB_MYSQL_NAME_FILE: /run/secrets/NPM_DB_NAME
+      DISABLE_IPV6: 'true'
+    volumes:
+      - /home/pi/apps/ngnix_proxy/data:/data
+      - /home/pi/apps/ngnix_proxy/letsencrypt:/etc/letsencrypt
+    depends_on:
+      - ngnix_proxy_db
+    secrets:
+      - NPM_DB_USER
+      - NPM_DB_PASSWORD
+      - NPM_DB_NAME
+
+  ngnix_proxy_db:
+    container_name: ngnix_proxy_db
+    image: jc21/mariadb-aria:latest
+    restart: unless-stopped
+    secrets:
+      - NPM_DB_USER
+      - NPM_DB_PASSWORD
+      - NPM_DB_NAME
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/NPM_DB_PASSWORD
+      MYSQL_DATABASE_FILE: /run/secrets/NPM_DB_NAME
+      MYSQL_USER_FILE: /run/secrets/NPM_DB_USER
+      MYSQL_PASSWORD_FILE: /run/secrets/NPM_DB_PASSWORD
+    volumes:
+      - /home/pi/apps/ngnix_proxy/mysql:/var/lib/mysql
+
+  bookstack:
+    image: lscr.io/linuxserver/bookstack
+    container_name: bookstack
+    restart: unless-stopped
+    secrets:
+      - BOOKSTACK_USER
+      - BOOKSTACK_PASSWORD
+      - BOOKSTACK_DB
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tbilisi
+      - APP_URL=https://wiki.maksimuladyka.org
+      - DB_HOST=bookstack_db
+      - DB_PORT=3306
+      - DB_USER_FILE=/run/secrets/BOOKSTACK_USER
+      - DB_PASS_FILE=/run/secrets/BOOKSTACK_PASSWORD
+      - DB_DATABASE_FILE=/run/secrets/BOOKSTACK_DB
+    volumes:
+      - /home/pi/apps/bookstack:/config
+    ports:
+      - 6875:80
+    depends_on:
+      - bookstack_db
+
+  bookstack_db:
+    image: mariadb:10.6
+    container_name: bookstack_db
+    restart: unless-stopped
+    secrets:
+      - BOOKSTACK_USER
+      - BOOKSTACK_PASSWORD
+      - BOOKSTACK_DB
+      - BOOKSTACK_PASSWORD_ROOT
+    environment:
+      - MYSQL_USER_FILE=/run/secrets/BOOKSTACK_USER
+      - MYSQL_PASSWORD_FILE=/run/secrets/BOOKSTACK_PASSWORD
+      - MYSQL_DATABASE_FILE=/run/secrets/BOOKSTACK_DB
+      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/BOOKSTACK_PASSWORD_ROOT
+    volumes:
+      - /home/pi/apps/bookstack_db:/config
+
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
+    restart: always
+    secrets:
+      - VAULTWARDER_ADMIN_TOKEN
+    ports:
+      - 85:80
+      - 3012:3012
+    volumes:
+      - /home/pi/apps/vaultwarden/data:/data
+    environment:
+      - WEBSOCKET_ENABLED=true
+      - SIGNUPS_ALLOWED=true
+      - INVITATIONS_ALLOWED=true
+      - ADMIN_TOKEN=/run/secrets/VAULTWARDER_ADMIN_TOKEN
+      - DOMAIN=https://vaultwarden.maksimuladyka.org
+
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    dns:
+      - 127.0.0.1
+      - 8.8.8.8
+    ports:
+      - 53:53/tcp
+      - 53:53/udp
+      - 67:67/udp
+      - 82:80/tcp
+    environment:
+      TZ: Asia/Tbilisi
+      WEBPASSWORD: 'pi'
+    volumes:
+      - /home/pi/apps/pihole:/etc/pihole
+      - /home/pi/apps/dnsmasq.d:/etc/dnsmasq.d
+    cap_add:
+      - NET_ADMIN
+    restart: always
