@@ -1,6 +1,6 @@
 #!/bin/bash
 REMOTE_USER="Maksim_Uladyka"
-REMOTE_IP="192.168.1.33"
+REMOTE_IP="192.168.1.6"
 REMOTE_DIR="/Users/Maksim_Uladyka/Documents/backups"
 BACKUP_DIR="/home/pi/Storage/backups/vaultwarden"
 DATE=$(date +%Y-%m-%d)
