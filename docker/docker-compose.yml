@@ -57,6 +57,9 @@ secrets:
 
   VAULTWARDER_ADMIN_TOKEN:
       file: ./VAULTWARDER_ADMIN_TOKEN
+  
+  PIHOLE_WEB_PASSWORD:
+      file: ./PIHOLE_WEB_PASSWORD
 
 # ==================== SERVICES ====================
 services:
@@ -157,21 +160,6 @@ services:
       - /home/pi/Storage/downloads:/downloads
     ports:
       - 8686:8686
-    restart: unless-stopped
-
-  readarr:
-    image: lscr.io/linuxserver/readarr:nightly
-    container_name: readarr
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Asia/Tbilisi
-    volumes:
-      - /home/pi/apps/readarr/config:/config
-      - /home/pi/media/books:/books
-      - /home/pi/Storage/downloads:/downloads
-    ports:
-      - 8787:8787
     restart: unless-stopped
 
   bazarr:
@@ -575,18 +563,17 @@ services:
     image: pihole/pihole:latest
     dns:
       - 127.0.0.1
-      - 8.8.8.8
+      - 1.1.1.1
     ports:
       - 53:53/tcp
       - 53:53/udp
       - 67:67/udp
       - 82:80/tcp
     environment:
-      TZ: Asia/Tbilisi
-      WEBPASSWORD: 'pi'
+      - WEBPASSWORD=/run/secrets/PIHOLE_WEB_PASSWORD
     volumes:
       - /home/pi/apps/pihole:/etc/pihole
-      - /home/pi/apps/dnsmasq.d:/etc/dnsmasq.d
+      - /home/pi/apps/pihole/dnsmasq.d:/etc/dnsmasq.d
     cap_add:
       - NET_ADMIN
     restart: always
