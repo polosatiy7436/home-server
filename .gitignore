@@ -1,0 +1,13 @@
+scripts/.env
+apps/
+Storage/
+media/
+code/
+docker/.env.secrets
+.*
+config
+yes
+yes.pub
+id_*
+docker/docker_pull.log
+docker/[!.]*
