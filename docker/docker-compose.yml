@@ -61,17 +61,22 @@ secrets:
   PIHOLE_WEB_PASSWORD:
       file: ./PIHOLE_WEB_PASSWORD
 
+  HOMARR_SECRET_ENCRYPTION_KEY:
+      file: ./HOMARR_SECRET_ENCRYPTION_KEY
+
 # ==================== SERVICES ====================
 services:
 # ==================== DASHBOARD ====================  
   homarr:
     container_name: homarr
-    image: ghcr.io/ajnart/homarr:latest
+    image: ghcr.io/homarr-labs/homarr:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /home/pi/apps/homarr/configs:/app/data/configs
-      - /home/pi/apps/homarr/icons:/app/public/icons
-      - /home/pi/apps/homarr/data:/data
+      - /home/pi/apps/homarr/:/appdata
+    secrets:
+      - HOMARR_SECRET_ENCRYPTION_KEY
+    environment:
+      - SECRET_ENCRYPTION_KEY=ee2c73b59aa4c2d694c2de12a368474be0d2b68816bb03708aadb8a4aeef6209
     ports:
       - 8080:7575
     restart: always
@@ -453,8 +458,9 @@ services:
       - NEXTCLOUD_DB_USER
       - NEXTCLOUD_DB_PASSWORD
 
-  ngnix_proxy:
-    container_name: ngnix_proxy
+# ==================== REVERSE PROXY ====================
+  nginx_proxy:
+    container_name: nginx_proxy
     image: jc21/nginx-proxy-manager:latest
     restart: unless-stopped
     ports:
@@ -462,7 +468,7 @@ services:
       - 443:443
       - 81:81
     environment:
-      DB_MYSQL_HOST: ngnix_proxy_db
+      DB_MYSQL_HOST: nginx_proxy_db
       DB_MYSQL_PORT: 3306
       DB_MYSQL_USER_FILE: /run/secrets/NPM_DB_USER
       DB_MYSQL_PASSWORD_FILE: /run/secrets/NPM_DB_PASSWORD
@@ -472,16 +478,16 @@ services:
       - /home/pi/apps/ngnix_proxy/data:/data
       - /home/pi/apps/ngnix_proxy/letsencrypt:/etc/letsencrypt
     depends_on:
-      - ngnix_proxy_db
+      - nginx_proxy_db
     secrets:
       - NPM_DB_USER
       - NPM_DB_PASSWORD
       - NPM_DB_NAME
 
-# ==================== REVERSE PROXY ====================
-  ngnix_proxy_db:
-    container_name: ngnix_proxy_db
-    image: jc21/mariadb-aria:latest
+  nginx_proxy_db:
+    container_name: nginx_proxy_db
+    image: mariadb:10.11.5
+    command: --default-storage-engine=innodb
     restart: unless-stopped
     secrets:
       - NPM_DB_USER
