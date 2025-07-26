@@ -10,7 +10,7 @@ BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 def split_message(text, chunk_size=4000):
-    """Разделить текст на части длиной не более chunk_size."""
+    """Split text into chunk_size to fir message limit."""
     return [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
 
 def send_message(text):
