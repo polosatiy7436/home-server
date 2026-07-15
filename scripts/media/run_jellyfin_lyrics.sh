@@ -1,11 +1,12 @@
 #!/bin/bash
+source /home/pi/scripts/lib/notify.sh
 
 SCRIPT="/home/pi/apps/Jellyfin-lyrics/main.py"
-PYTHON="/usr/bin/python3"
-TELEGRAM_SCRIPT="/home/pi/scripts/send_to_telegram.py"
 
-{
+run_jellyfin_lyrics() {
   echo "🎵 Starting Jellyfin-lyrics script: $(date)"
-  $PYTHON "$SCRIPT"
+  /home/pi/apps/Jellyfin-lyrics/bin/python3 "$SCRIPT"
   echo "✅ Jellyfin-lyrics script finished: $(date)"
-} 2>&1 | $PYTHON "$TELEGRAM_SCRIPT"
+}
+
+run_with_notify run_jellyfin_lyrics

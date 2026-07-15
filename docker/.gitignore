@@ -1,0 +1,23 @@
+# Apple Double / Finder cruft
+._*
+.DS_Store
+
+# secret payloads (generated) and their plaintext sources
+secrets/sources/*.env
+secrets/OPENAI_API_KEY
+secrets/MEALIE_POSTGRES_*
+secrets/NEXTCLOUD_DB_*
+secrets/IMMICH_DB_*
+secrets/NPM_DB_*
+secrets/BOOKSTACK_*
+secrets/VAULTWARDER_ADMIN_TOKEN
+secrets/PIHOLE_WEB_PASSWORD
+secrets/HOMARR_SECRET_ENCRYPTION_KEY
+secrets/.env.secrets
+
+# env files with real values
+.env
+env/*.env
+
+# local backups / dumps
+*.sql

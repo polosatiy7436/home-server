@@ -1,0 +1,21 @@
+# ==================== DNS SINKHOLE ====================
+# admin password: set via 'pihole setpassword'
+services:
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    dns:
+      - 127.0.0.1
+      - 1.1.1.1
+    ports:
+      - 53:53/tcp
+      - 53:53/udp
+      - 67:67/udp
+      - 82:80/tcp
+    shm_size: 4096m
+    volumes:
+      - /home/pi/apps/pihole:/etc/pihole
+      - /home/pi/apps/pihole/dnsmasq.d:/etc/dnsmasq.d
+    cap_add:
+      - NET_ADMIN
+    restart: always

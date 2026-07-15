@@ -1,0 +1,12 @@
+# Apple Double / Finder cruft
+._*
+
+# secrets
+.env
+.zipPass
+
+# restic credentials
+.restic.env
+
+# uptime-kuma push tokens
+.kuma.env

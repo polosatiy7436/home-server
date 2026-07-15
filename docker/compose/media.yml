@@ -1,0 +1,213 @@
+# ==================== MEDIA STACK ====================
+services:
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    environment:
+      - DOCKER_MODS=ghcr.io/intro-skipper/intro-skipper-docker-mod|ghcr.io/lizardbyte/themerr-jellyfin:latest
+      - TZ=Asia/Tbilisi
+      - AMDGPU_DRIVER=amdgpu
+      - LIBVA_DRIVER_NAME=radeonsi
+      - VDPAU_DRIVER=radeonsi
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - /home/pi/apps/jellyfin/config:/config
+      - /home/pi/media/tv:/home/pi/media/tv
+      - /home/pi/media/movies:/home/pi/media/movies
+      - /home/pi/media/music:/home/pi/media/music
+      - /home/pi/media/podcasts:/home/pi/media/podcasts
+      # - /etc/group:/etc/group:ro
+      # - /etc/passwd:/etc/passwd:ro
+    devices:
+      - /dev/dri:/dev/dri
+    ports:
+      - 8096:8096
+    group_add:
+      - 985
+      - 989
+    restart: unless-stopped
+    cap_add:
+      - SYS_ADMIN
+
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    container_name: jellyseerr
+    environment:
+      - LOG_LEVEL=debug
+      - TZ=Asia/Tbilisi
+    ports:
+      - 5055:5055
+    volumes:
+      - /home/pi/apps/jellyseerr:/app/config
+    restart: unless-stopped
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tbilisi
+    volumes:
+      - /home/pi/apps/prowlarr/config:/config
+    ports:
+      - 9696:9696
+    restart: unless-stopped
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    environment:
+      - LOG_LEVEL=info
+      - LOG_HTML=false
+      - CAPTCHA_SOLVER=none
+      - TZ=Asia/Tbilisi
+    ports:
+      - 8191:8191
+    restart: unless-stopped
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tbilisi
+    volumes:
+      - /home/pi/apps/sonarr/config:/config
+      - /home/pi/media/tv:/tv
+      - /home/pi/Storage/downloads:/downloads
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tbilisi
+    volumes:
+      - /home/pi/apps/radarr/config:/config
+      - /home/pi/media/movies:/movies
+      - /home/pi/Storage/downloads:/downloads
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    container_name: lidarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tbilisi
+    volumes:
+      - /home/pi/apps/lidarr/config:/config
+      - /home/pi/media/music:/music
+      - /home/pi/Storage/downloads:/downloads
+    ports:
+      - 8686:8686
+    restart: unless-stopped
+
+  bazarr:
+    container_name: bazarr
+    image: lscr.io/linuxserver/bazarr:latest
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - UMASK=002
+      - TZ=Asia/Tbilisi
+    volumes:
+      - /home/pi/apps/bazarr/config:/config
+      - /home/pi/media:/data
+      - /home/pi/media/tv:/tv
+      - /home/pi/media/movies:/movies
+      - /home/pi/Storage/downloads:/downloads
+    ports:
+      - 6767:6767
+    restart: unless-stopped
+
+  deluge:
+    image: lscr.io/linuxserver/deluge:2.2.0-r1-ls364
+    container_name: deluge
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tbilisi
+      - DELUGE_LOGLEVEL=error
+    volumes:
+      - /home/pi/apps/deluge/config:/config
+      - /home/pi/Storage/downloads:/downloads
+      - /home/pi/Storage/Games:/Games
+    ports:
+      - 8112:8112
+      - 6881:6881
+      - 6881:6881/udp
+      - 58846:58846
+    restart: unless-stopped
+
+  navidrome:
+    image: deluan/navidrome:latest
+    container_name: navidrome
+    user: 1000:1000
+    ports:
+      - 4533:4533
+    restart: unless-stopped
+    environment:
+      ND_SCANSCHEDULE: 24h
+    volumes:
+      - /home/pi/apps/navidrome:/data
+      - /home/pi/media/music:/music:ro
+
+  # lazylibrarian:
+  #   image: lscr.io/linuxserver/lazylibrarian:latest
+  #   container_name: lazylibrarian
+  #   environment:
+  #     - PUID=1000
+  #     - PGID=1000
+  #     - TZ=Asia/Tbilisi
+  #     - DOCKER_MODS=linuxserver/mods:universal-calibre|linuxserver/mods:lazylibrarian-ffmpeg #optional
+  #   volumes:
+  #     - /home/pi/apps/lazylibrarian/data:/config
+  #     - /home/pi/Strorage/downloads:/downloads
+  #     - /home/pi/media/books:/books #optional
+  #   ports:
+  #     - 5299:5299
+  #   restart: unless-stopped
+
+  # calibre:
+  #   image: lscr.io/linuxserver/calibre:latest
+  #   container_name: calibre
+  #   environment:
+  #     - PUID=1000
+  #     - PGID=1000
+  #     - TZ=Asia/Tbilisi
+  #     - CALIBRE_USE_SSL=false
+  #   volumes:
+  #     - /home/pi/apps/calibre/data:/config
+  #     - /home/pi/media/books:/books #optional
+  #   ports:
+  #     - 8091:8080
+  #     - 8092:8181
+  #     - 8093:8081
+  #   shm_size: "1gb"
+  #   restart: unless-stopped
+
+  # calibre-web:
+  #   image: lscr.io/linuxserver/calibre-web:latest
+  #   container_name: calibre-web
+  #   environment:
+  #     - PUID=1000
+  #     - PGID=1000
+  #     - TZ=Asia/Tbilisi
+  #     - DOCKER_MODS=linuxserver/mods:universal-calibre #optional
+  #     - OAUTHLIB_RELAX_TOKEN_SCOPE=1 #optional
+  #   volumes:
+  #     - /home/pi/apps/calibre-web/data:/config
+  #     - /home/pi/media/books:/books #optional
+  #   ports:
+  #     - 8083:8083
+  #   restart: unless-stopped

@@ -1,0 +1,126 @@
+# ==================== MONITORING ====================
+networks:
+  internal:
+    driver: bridge
+
+services:
+  uptime-kuma:
+    container_name: uptime-kuma
+    # NOTE: docker hub 'latest' tag is stuck on 1.x — the '2' tag is current stable
+    image: louislam/uptime-kuma:2
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      - /home/pi/apps/uptime-kuma:/app/data
+      # allows Docker-container monitors (status of all 35 containers)
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  smartctl-exporter:
+    container_name: monitoring-smartctl-exporter
+    image: prometheuscommunity/smartctl-exporter:latest
+    restart: unless-stopped
+    # privileged: exporter auto-discovers all disks (incl. the T7's USB bridge,
+    # which its bundled smartmontools handles fine)
+    privileged: true
+    user: root
+    command:
+      # poll disks hourly (SMART data changes slowly); rescan for new disks hourly
+      - --smartctl.interval=1h
+      - --smartctl.rescan=1h
+    networks:
+      - internal
+    expose:
+      - 9633
+
+  grafana:
+    container_name: monitoring-grafana
+    image: grafana/grafana:latest
+    hostname: arch-grafana
+    restart: unless-stopped
+    user: "472"
+    networks:
+      - internal
+    ports:
+      - "3000:3000"
+    env_file:
+      - /home/pi/apps/monitoring/grafana/.env
+    volumes:
+      - /home/pi/apps/monitoring/grafana/data:/var/lib/grafana
+      - /home/pi/apps/monitoring/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+
+  cadvisor:
+    container_name: monitoring-cadvisor
+    image: gcr.io/cadvisor/cadvisor:v0.47.1
+    hostname: arch-cadvisor
+    restart: unless-stopped
+    privileged: true
+    networks:
+      - internal
+    expose:
+      - 8080
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+      - /etc/machine-id:/etc/machine-id:ro
+
+  node-exporter:
+    container_name: monitoring-node-exporter
+    image: prom/node-exporter:latest
+    hostname: arch-exporter
+    restart: unless-stopped
+    networks:
+      - internal
+    expose:
+      - 9100
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/host
+      - --collector.filesystem.ignored-mount-points
+      - ^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - /:/host:ro,rslave
+
+  prometheus:
+    container_name: monitoring-prometheus
+    image: prom/prometheus:latest
+    hostname: arch-prometheus
+    restart: unless-stopped
+    user: "nobody"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - internal
+    expose:
+      - 9090
+    volumes:
+      - /home/pi/apps/monitoring/prometheus/data:/prometheus
+      - /home/pi/apps/monitoring/prometheus:/etc/prometheus/
+    depends_on:
+      - cadvisor
+      - node-exporter
+    links:
+      - cadvisor:cadvisor
+      - node-exporter:node-exporter
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    ports:
+      - 9000:9000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/pi/apps/portainer:/data
+    restart: unless-stopped
