@@ -1,13 +1,21 @@
-scripts/.env
+# server data dirs — not part of this repo
 apps/
 Storage/
-media/
+/media/
 code/
-docker/.env.secrets
-.*
-config
-yes
-yes.pub
-id_*
+
+# local env / secrets — never commit
+scripts/.env
+scripts/.kuma.env
+scripts/.zipPass
+scripts/backup/.restic.env
+docker/.env
+docker/env/*.env
+docker/secrets/*
+!docker/secrets/secrets.sh
+docker/*.sql
 docker/docker_pull.log
-docker/[!.]*
+
+# cruft
+._*
+.DS_Store

@@ -1,0 +1,26 @@
+# ==================== PASSWORD MANAGER ====================
+secrets:
+  VAULTWARDER_ADMIN_TOKEN:
+    file: ../secrets/VAULTWARDER_ADMIN_TOKEN
+
+services:
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
+    restart: always
+    secrets:
+      - VAULTWARDER_ADMIN_TOKEN
+    ports:
+      - 85:80
+      - 3012:3012
+    volumes:
+      - /home/pi/apps/vaultwarden/data:/data
+    environment:
+      - WEBSOCKET_ENABLED=true
+      # public registration off; add users via admin panel invitations instead
+      - SIGNUPS_ALLOWED=false
+      - INVITATIONS_ALLOWED=true
+      # _FILE suffix = vaultwarden reads the token from the secret's contents
+      # (the old ADMIN_TOKEN=<path> made the literal path string the token!)
+      - ADMIN_TOKEN_FILE=/run/secrets/VAULTWARDER_ADMIN_TOKEN
+      - DOMAIN=https://vaultwarden.maksimuladyka.org

@@ -1,0 +1,80 @@
+# ==================== CS self-host ==================
+services:
+  cyber-chef:
+    image: mpepping/cyberchef:latest
+    container_name: cyberchef
+    restart: unless-stopped
+    ports:
+      - 8003:8000
+    volumes:
+      - /home/pi/apps/cyberchef:/config
+
+# ======================= LLM =========================
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    ports:
+      - "9898:8080"
+    volumes:
+      - /home/pi/apps/openWebUi:/app/backend/data
+    environment:
+      - OLLAMA_BASE_URL=http://192.168.1.40:11434
+    restart: unless-stopped
+
+# ======================= News ==========================
+
+  # freshrss:
+  #   image: lscr.io/linuxserver/freshrss:latest  # Official LinuxServer image; pulls the correct arch automatically
+  #   container_name: freshrss
+  #   environment:
+  #     - PUID=1000
+  #     - PGID=1000
+  #     - TZ=Asia/Tbilisi
+  #   volumes:
+  #     - /home/pi/apps/freshrss/config:/config
+  #   ports:
+  #     - 8085:80
+  #   restart: unless-stopped
+
+# ======================= Podcasts ======================
+
+  podgrab:
+    image: akhilrex/podgrab:latest
+    container_name: podgrab
+    restart: unless-stopped
+    volumes:
+      - /home/pi/apps/pdgrab/:/config
+      - /home/pi/media/grabs:/assets
+    ports:
+      - 8086:8080
+    environment:
+      - PODGRAB_DESTINATION=/assets
+      - PODGRAB_STRATEGY=all_episodes
+      - PODGRAB_LOG_LEVEL=info
+
+  audiobookshelf:
+    image: ghcr.io/advplyr/audiobookshelf:latest
+    container_name: audiobookshelf
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Tbilisi
+      - SSRF_REQUEST_FILTER_WHITELIST=podgrab.maksimuladyka.org
+    volumes:
+      - /home/pi/apps/audiobookshelf/config:/config
+      - /home/pi/media/podcasts:/podcasts
+    ports:
+      - 8087:80
+
+# ==================== Web File Browser ====================
+  filebrowser:
+    image: filebrowser/filebrowser
+    container_name: filebrowser
+    environment:
+      - PUID=$(id -u)
+      - PGID=$(id -g)
+    ports:
+      - "8090:80"
+    volumes:
+      - /home/pi/:/srv
+      - /home/pi/apps/fileBrowser:/database.db
+    restart: unless-stopped

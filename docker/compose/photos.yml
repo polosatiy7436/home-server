@@ -1,0 +1,65 @@
+# ==================== PHOTO GALLERY AND MEDIA BACKUP ====================
+secrets:
+  IMMICH_DB_USER:
+    file: ../secrets/IMMICH_DB_USER
+  IMMICH_DB_PASSWORD:
+    file: ../secrets/IMMICH_DB_PASSWORD
+  IMMICH_DB_NAME:
+    file: ../secrets/IMMICH_DB_NAME
+
+services:
+  immich-server:
+    container_name: immich_server
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
+    volumes:
+      - ${UPLOAD_LOCATION}:/usr/src/app/upload
+      - /usr/share/zoneinfo/Asia/Tbilisi:/etc/localtime:ro
+      - ${EXTERNAL_PATH}:/usr/src/app/external
+    ports:
+      - 2283:2283
+    depends_on:
+      - redis
+      - database
+    secrets:
+      - IMMICH_DB_USER
+      - IMMICH_DB_PASSWORD
+      - IMMICH_DB_NAME
+    environment:
+      - DB_HOST=database
+      - DB_PORT=5432
+      - DB_USERNAME_FILE=/run/secrets/IMMICH_DB_USER
+      - DB_PASSWORD_FILE=/run/secrets/IMMICH_DB_PASSWORD
+      - DB_DATABASE_NAME_FILE=/run/secrets/IMMICH_DB_NAME
+    restart: unless-stopped
+
+  immich-machine-learning:
+    container_name: immich_machine_learning
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
+    volumes:
+      - /home/pi/apps/immich/model-cache:/cache
+    env_file:
+      - ../env/immich.env
+    restart: always
+
+  redis:
+    container_name: immich_redis
+    image: docker.io/redis:6.2-alpine@sha256:d6c2911ac51b289db208767581a5d154544f2b2fe4914ea5056443f62dc6e900
+    healthcheck:
+      test: redis-cli ping || exit 1
+    restart: always
+
+  database:
+    container_name: immich_postgres
+    image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0
+    environment:
+      POSTGRES_USER_FILE: /run/secrets/IMMICH_DB_USER
+      POSTGRES_PASSWORD_FILE: /run/secrets/IMMICH_DB_PASSWORD
+      POSTGRES_DB_FILE: /run/secrets/IMMICH_DB_NAME
+      POSTGRES_INITDB_ARGS: '--data-checksums'
+    volumes:
+      - ${DB_DATA_LOCATION}:/var/lib/postgresql/data
+    restart: always
+    secrets:
+      - IMMICH_DB_USER
+      - IMMICH_DB_PASSWORD
+      - IMMICH_DB_NAME

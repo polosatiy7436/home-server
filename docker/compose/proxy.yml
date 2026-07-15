@@ -1,0 +1,51 @@
+# ==================== REVERSE PROXY ====================
+secrets:
+  NPM_DB_USER:
+    file: ../secrets/NPM_DB_USER
+  NPM_DB_PASSWORD:
+    file: ../secrets/NPM_DB_PASSWORD
+  NPM_DB_NAME:
+    file: ../secrets/NPM_DB_NAME
+
+services:
+  nginx_proxy:
+    container_name: nginx_proxy
+    image: jc21/nginx-proxy-manager:latest
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+      - 81:81
+    environment:
+      DB_MYSQL_HOST: nginx_proxy_db
+      DB_MYSQL_PORT: 3306
+      DB_MYSQL_USER_FILE: /run/secrets/NPM_DB_USER
+      DB_MYSQL_PASSWORD_FILE: /run/secrets/NPM_DB_PASSWORD
+      DB_MYSQL_NAME_FILE: /run/secrets/NPM_DB_NAME
+      DISABLE_IPV6: 'true'
+    volumes:
+      - /home/pi/apps/ngnix_proxy/data:/data
+      - /home/pi/apps/ngnix_proxy/letsencrypt:/etc/letsencrypt
+    depends_on:
+      - nginx_proxy_db
+    secrets:
+      - NPM_DB_USER
+      - NPM_DB_PASSWORD
+      - NPM_DB_NAME
+
+  nginx_proxy_db:
+    container_name: nginx_proxy_db
+    image: mariadb:10.11.5
+    command: --default-storage-engine=innodb
+    restart: unless-stopped
+    secrets:
+      - NPM_DB_USER
+      - NPM_DB_PASSWORD
+      - NPM_DB_NAME
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/NPM_DB_PASSWORD
+      MYSQL_DATABASE_FILE: /run/secrets/NPM_DB_NAME
+      MYSQL_USER_FILE: /run/secrets/NPM_DB_USER
+      MYSQL_PASSWORD_FILE: /run/secrets/NPM_DB_PASSWORD
+    volumes:
+      - /home/pi/apps/ngnix_proxy/mysql:/var/lib/mysql

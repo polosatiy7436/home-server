@@ -1,0 +1,20 @@
+# ==================== DASHBOARD ====================
+secrets:
+  HOMARR_SECRET_ENCRYPTION_KEY:
+    file: ../secrets/HOMARR_SECRET_ENCRYPTION_KEY
+
+services:
+  homarr:
+    container_name: homarr
+    image: ghcr.io/homarr-labs/homarr:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/pi/apps/homarr/:/appdata
+    secrets:
+      - HOMARR_SECRET_ENCRYPTION_KEY
+    environment:
+      # key comes from the mounted Docker secret (same value as before)
+      - SECRET_ENCRYPTION_KEY_FILE=/run/secrets/HOMARR_SECRET_ENCRYPTION_KEY
+    ports:
+      - 8080:7575
+    restart: always

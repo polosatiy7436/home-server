@@ -1,0 +1,59 @@
+# ==================== SELF-HOSTED WIKI ====================
+secrets:
+  BOOKSTACK_USER:
+    file: ../secrets/BOOKSTACK_USER
+  BOOKSTACK_PASSWORD:
+    file: ../secrets/BOOKSTACK_PASSWORD
+  BOOKSTACK_DB:
+    file: ../secrets/BOOKSTACK_DB
+  BOOKSTACK_PASSWORD_ROOT:
+    file: ../secrets/BOOKSTACK_PASSWORD_ROOT
+  BOOKSTACK_APP_KEY:
+    file: ../secrets/BOOKSTACK_APP_KEY
+
+services:
+  bookstack:
+    image: lscr.io/linuxserver/bookstack
+    container_name: bookstack
+    restart: unless-stopped
+    secrets:
+      - BOOKSTACK_USER
+      - BOOKSTACK_PASSWORD
+      - BOOKSTACK_DB
+      - BOOKSTACK_APP_KEY
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Tbilisi
+      - APP_URL=https://wiki.maksimuladyka.org
+      - DB_HOST=bookstack_db
+      - DB_PORT=3306
+      - DB_DATABASE=bookstack
+      # credentials come from Docker secrets (FILE__ prefix = linuxserver.io convention)
+      - FILE__DB_USERNAME=/run/secrets/BOOKSTACK_USER
+      - FILE__DB_PASSWORD=/run/secrets/BOOKSTACK_PASSWORD
+      - FILE__APP_KEY=/run/secrets/BOOKSTACK_APP_KEY
+    volumes:
+      - /home/pi/apps/bookstack:/config
+    ports:
+      - 6875:80
+    depends_on:
+      - bookstack_db
+
+  bookstack_db:
+    image: mariadb:10.6.16
+    container_name: bookstack_db
+    restart: unless-stopped
+    secrets:
+      - BOOKSTACK_USER
+      - BOOKSTACK_PASSWORD
+      - BOOKSTACK_DB
+      - BOOKSTACK_PASSWORD_ROOT
+    environment:
+      # _FILE variants are only read on first init; kept aligned with the live DB
+      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/BOOKSTACK_PASSWORD_ROOT
+      - MYSQL_DATABASE=bookstack
+      - MYSQL_USER_FILE=/run/secrets/BOOKSTACK_USER
+      - MYSQL_PASSWORD_FILE=/run/secrets/BOOKSTACK_PASSWORD
+    volumes:
+      - /home/pi/apps/bookstack_db:/var/lib/mysql
